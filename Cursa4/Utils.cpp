@@ -33,7 +33,6 @@ Bitmap^ Utils::SequentialChangeContrast(Bitmap^ img, double coeff)
 	ch = &inputImagePixels[0];
 	for (int i = 0; i < height; i++)
 	{
-		int buff_avg = 0;
 		for (int j = 0; j < width; j++)
 		{
 			*ch++;
@@ -96,7 +95,6 @@ Bitmap^ Utils::OmpChangeContrast(Bitmap^ img, double coeff)
 
 	unsigned char pallete[256];
 	int avg = 0;
-	int j = 0;
 	int height = img->Height;
 	int width = img->Width;
 
@@ -113,12 +111,10 @@ Bitmap^ Utils::OmpChangeContrast(Bitmap^ img, double coeff)
 		}
 	}
 
-	int buff_avg = 0;
-#pragma omp parallel for schedule(dynamic, 200) firstprivate(buff_avg, inputImagePixels)
+#pragma omp parallel for schedule(dynamic, 200) firstprivate(inputImagePixels)
 	for (int i = 0; i < height; i++)
 	{
-#pragma omp critical
-		buff_avg = 0;
+		int buff_avg = 0;
 		for (int j = 0; j < width; j++)
 		{
 			unsigned char r = inputImagePixels[(i * width + j) * 4 + 1];
