@@ -31,16 +31,13 @@ Bitmap^ Utils::SequentialChangeContrast(Bitmap^ img, double coeff)
 	}
 
 	ch = &inputImagePixels[0];
-	for (int i = 0; i < height; i++)
+	for (int i = 0; i < (height * width); i++)
 	{
-		for (int j = 0; j < width; j++)
-		{
-			*ch++;
-			unsigned char r = *ch++;
-			unsigned char g = *ch++;
-			unsigned char b = *ch++;
-			avg += r * 0.299 + g * 0.587 + b * 0.114;
-		}
+		*ch++;
+		unsigned char r = *ch++;
+		unsigned char g = *ch++;
+		unsigned char b = *ch++;
+		avg += r * 0.299 + g * 0.587 + b * 0.114;
 	}
 	avg /= (width * height);
 
@@ -59,18 +56,15 @@ Bitmap^ Utils::SequentialChangeContrast(Bitmap^ img, double coeff)
 	}
 
 	ch = &inputImagePixels[0];
-	for (int i = 0; i < height; i++)
+	for (int i = 0; i < (height * width); i++)
 	{
-		for (int j = 0; j < width; j++)
-		{
-			*ch++;
-			*ch = pallete[*ch];
-			*ch++;
-			*ch = pallete[*ch];
-			*ch++;
-			*ch = pallete[*ch];
-			*ch++;
-		}
+		*ch++;
+		*ch = pallete[*ch];
+		*ch++;
+		*ch = pallete[*ch];
+		*ch++;
+		*ch = pallete[*ch];
+		*ch++;
 	}
 
 	ch = &inputImagePixels[0];
