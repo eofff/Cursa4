@@ -152,7 +152,6 @@ Bitmap^ Utils::OmpChangeContrast(Bitmap^ img, double coeff)
 	{
 		for (int j = 0; j < width; j++)
 		{
-			inputImagePixels[(i * width + j) * 4] = 255;
 			inputImagePixels[(i * width + j) * 4 + 1] = pallete[inputImagePixels[(i * width + j) * 4 + 1]];
 			inputImagePixels[(i * width + j) * 4 + 2] = pallete[inputImagePixels[(i * width + j) * 4 + 2]];
 			inputImagePixels[(i * width + j) * 4 + 3] = pallete[inputImagePixels[(i * width + j) * 4 + 3]];
