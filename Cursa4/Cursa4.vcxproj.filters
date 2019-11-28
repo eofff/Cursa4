@@ -37,5 +37,8 @@
     <None Include="main_kernel.cl">
       <Filter>Исходные файлы</Filter>
     </None>
+    <None Include="pallete_kernel.cl">
+      <Filter>Исходные файлы</Filter>
+    </None>
   </ItemGroup>
 </Project>

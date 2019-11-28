@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="main_kernel.cl" />
+    <None Include="pallete_kernel.cl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

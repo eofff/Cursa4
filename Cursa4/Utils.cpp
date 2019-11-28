@@ -164,10 +164,9 @@ Bitmap^ Utils::OmpChangeContrast(Bitmap^ img, double coeff)
 	return returned;
 }
 
-Bitmap^ Utils::CLChangeContrast(cl_device_id *devices, Bitmap^ img, double coeff)
+Bitmap^ Utils::CLChangeContrast(cl_device_id *devices, Bitmap^ img, float coeff)
 {
-	// высчитаем новую палитру, этот шаг не поддаЄтс€ параллелизации с помощью OpenCL
-	unsigned char pallete[256];
+	// высчитаем среднее значение €ркости изображени€, этот шаг не поддаЄтс€ параллелизации с помощью OpenCL
 	int avg = 0;
 
 	for (int i = 0; i < img->Height; i++)
@@ -181,24 +180,20 @@ Bitmap^ Utils::CLChangeContrast(cl_device_id *devices, Bitmap^ img, double coeff
 		}
 	avg /= (img->Width * img->Height);
 
-	for (int i = 0; i <= 255; i++)
-	{
-		int temp = avg + coeff * (i - avg);
-		if (temp < 0)
-		{
-			temp = 0;
-		}
-		else if (temp > 255)
-		{
-			temp = 255;
-		}
-		pallete[i] = temp;
-	}
-
 	// далее идЄт участок кода с участием OpenCL
+
 	cl_int status = 0;
 	cl_context context = clCreateContext(NULL, 1, devices, NULL, NULL, NULL);
 	cl_command_queue commandQueue = clCreateCommandQueue(context, devices[0], 0, NULL);
+
+	char* fileNamePallete = "pallete_kernel.cl";
+	std::string sourceCodePallete;
+	status = convertToString(fileNamePallete, sourceCodePallete);
+	const char* sourcePallete = sourceCodePallete.c_str();
+	size_t sizeOfPalleteSource[] = { strlen(sourcePallete) };
+	cl_program programPallete = clCreateProgramWithSource(context, 1, &sourcePallete, sizeOfPalleteSource, &status);
+	status = clBuildProgram(programPallete, 1, devices, NULL, NULL, NULL);
+
 	const char* fileName = "main_kernel.cl";
 	std::string sourceCode;
 	status = convertToString(fileName, sourceCode);
@@ -226,8 +221,19 @@ Bitmap^ Utils::CLChangeContrast(cl_device_id *devices, Bitmap^ img, double coeff
 	}
 	cl_mem inputImage2DBuffer = clCreateImage2D(context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, imageFormat, imageWidth, imageHeight, 0, (void*)inputImagePixels, &status);
 	cl_mem outputImage2DBuffer = clCreateImage2D(context, CL_MEM_WRITE_ONLY, imageFormat, imageWidth, imageHeight, 0, NULL, &status);
-	cl_mem palleteBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(cl_uchar) * 256, pallete, &status);
+	cl_mem avgBuffer = clCreateBuffer(context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_uchar), (void*)&avg, &status);
+	cl_mem coeffBuffer = clCreateBuffer(context, CL_MEM_COPY_HOST_PTR | CL_MEM_READ_ONLY, sizeof(cl_float), (void*)&coeff, &status);
+	cl_mem palleteBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(cl_uchar) * 256, NULL, &status);
+
+	cl_kernel kernelPallete = clCreateKernel(programPallete, "pallete_kernel", &status);
+	status = clSetKernelArg(kernelPallete, 0, sizeof(cl_mem), (void*)&palleteBuffer);
+	status = clSetKernelArg(kernelPallete, 1, sizeof(cl_mem), (void*)&avgBuffer);
+	status = clSetKernelArg(kernelPallete, 2, sizeof(cl_mem), (void*)&coeffBuffer);
+	size_t global_work_size_pallete[] = { 256 };
+
 	cl_kernel kernel = clCreateKernel(program, "main_kernel", &status);
+	status = clEnqueueNDRangeKernel(commandQueue, kernelPallete, 1, NULL, global_work_size_pallete, NULL, 0, NULL, NULL);
+
 	status = clSetKernelArg(kernel, 0, sizeof(cl_mem), (void*)&inputImage2DBuffer);
 	status = clSetKernelArg(kernel, 1, sizeof(cl_mem), (void*)&outputImage2DBuffer);
 	status = clSetKernelArg(kernel, 2, sizeof(cl_mem), (void*)&palleteBuffer);
@@ -252,12 +258,17 @@ Bitmap^ Utils::CLChangeContrast(cl_device_id *devices, Bitmap^ img, double coeff
 	}
 	clReleaseMemObject(outputImage2DBuffer);
 	clReleaseMemObject(inputImage2DBuffer);
-	delete[]inputImagePixels;
-	delete[]outputImagePixels;
+	delete[] inputImagePixels;
+	delete[] outputImagePixels;
 	clReleaseKernel(kernel);
 	clReleaseCommandQueue(commandQueue);
 	clReleaseContext(context);
 	clReleaseProgram(program);
+
+	clReleaseMemObject(palleteBuffer);
+	clReleaseMemObject(avgBuffer);
+	clReleaseKernel(kernelPallete);
+	clReleaseProgram(programPallete);
 
 	return bmpOutputImage;
 }
